@@ -9,6 +9,8 @@ function (_, kbn) {
     this.datapoints = opts.datapoints;
     this.info = opts.info;
     this.label = opts.info.alias;
+    this.valueFormater = kbn.valueFormats.none;
+    this.stats = {};
   }
 
   function matchSeriesOverride(aliasOrRegex, seriesAlias) {
@@ -60,9 +62,9 @@ function (_, kbn) {
     this.color = this.info.color;
     this.yaxis = this.info.yaxis;
 
-    this.info.total = 0;
-    this.info.max = -212312321312;
-    this.info.min = 212312321312;
+    this.stats.total = 0;
+    this.stats.max = -212312321312;
+    this.stats.min = 212312321312;
 
     var ignoreNulls = fillStyle === 'connected';
     var nullAsZero = fillStyle === 'null as zero';
@@ -81,38 +83,46 @@ function (_, kbn) {
       }
 
       if (_.isNumber(currentValue)) {
-        this.info.total += currentValue;
+        this.stats.total += currentValue;
       }
 
-      if (currentValue > this.info.max) {
-        this.info.max = currentValue;
+      if (currentValue > this.stats.max) {
+        this.stats.max = currentValue;
       }
 
-      if (currentValue < this.info.min) {
-        this.info.min = currentValue;
+      if (currentValue < this.stats.min) {
+        this.stats.min = currentValue;
       }
 
       result.push([currentTime * 1000, currentValue]);
     }
 
     if (result.length > 2) {
-      this.info.timeStep = result[1][0] - result[0][0];
+      this.stats.timeStep = result[1][0] - result[0][0];
     }
 
     if (result.length) {
-      this.info.avg = (this.info.total / result.length);
-      this.info.current = result[result.length-1][1];
+      this.stats.avg = (this.stats.total / result.length);
+      this.stats.current = result[result.length-1][1];
     }
 
     return result;
   };
 
   TimeSeries.prototype.updateLegendValues = function(formater, decimals, scaledDecimals) {
-    this.info.avg = this.info.avg != null ? formater(this.info.avg, decimals, scaledDecimals) : null;
-    this.info.current = this.info.current != null ? formater(this.info.current, decimals, scaledDecimals) : null;
-    this.info.min = this.info.min != null ? formater(this.info.min, decimals, scaledDecimals) : null;
-    this.info.max = this.info.max != null ? formater(this.info.max, decimals, scaledDecimals) : null;
-    this.info.total = this.info.total != null ? formater(this.info.total, decimals, scaledDecimals) : null;
+    this.valueFormater = formater;
+    this.decimals = decimals;
+    this.scaledDecimals = scaledDecimals;
+
+    this.info.avg = this.formatValue(this.stats.avg);
+    this.info.current = this.formatValue(this.stats.current);
+    this.info.min = this.formatValue(this.stats.min);
+    this.info.max = this.formatValue(this.stats.max);
+    this.info.total = this.formatValue(this.stats.total);
+  };
+
+  TimeSeries.prototype.formatValue = function(value) {
+    return this.valueFormater(value, this.decimals, this.scaledDecimals);
   };
 
   return TimeSeries;

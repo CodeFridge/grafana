@@ -6,7 +6,7 @@ define([
   'lodash',
   './grafanaGraph.tooltip'
 ],
-function (angular, $, kbn, moment, _, graphTooltip) {
+function (angular, $, kbn, moment, _, GraphTooltip) {
   'use strict';
 
   var module = angular.module('grafana.directives');
@@ -111,8 +111,8 @@ function (angular, $, kbn, moment, _, graphTooltip) {
             var axis = yaxis[series.yaxis - 1];
             var formater = kbn.valueFormats[scope.panel.y_formats[series.yaxis - 1]];
             series.updateLegendValues(formater, axis.tickDecimals, axis.scaledDecimals);
+            if(!scope.$$phase) { scope.$digest(); }
           }
-
         }
 
         // Function for rendering panel
@@ -416,7 +416,9 @@ function (angular, $, kbn, moment, _, graphTooltip) {
           elem.html('<img src="' + url + '"></img>');
         }
 
-        graphTooltip.register(elem, dashboard, scope, $rootScope);
+        new GraphTooltip(elem, dashboard, scope, function() {
+          return data;
+        });
 
         elem.bind("plotselected", function (event, ranges) {
           scope.$apply(function() {
